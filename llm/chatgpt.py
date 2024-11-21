@@ -45,13 +45,14 @@ def ask_chat(model, messages: list, temperature, n):
     response_clean = [choice["message"]["content"] for choice in response["choices"]]
     if n == 1:
         response_clean = response_clean[0]
+
     return dict(
         response=response_clean,
         **response["usage"]
     )
 
 
-def ask_llm(model: str, batch: list, temperature: float, n:int):
+def ask_llm(model: str, batch: list, temperature: float, n:int, error_msg=""):
     n_repeat = 0
     while True:
         try:
@@ -62,7 +63,10 @@ def ask_llm(model: str, batch: list, temperature: float, n:int):
             elif model in LLM.TASK_CHAT:
                 # batch size must be 1
                 assert len(batch) == 1, "batch must be 1 in this mode"
-                messages = [{"role": "user", "content": batch[0]}]
+                # if(error_msg !=""):
+                #     print(error_msg)
+                content = batch[0]+error_msg
+                messages = [{"role": "user", "content": content}]
                 response = ask_chat(model, messages, temperature, n)
                 response['response'] = [response['response']]
             break

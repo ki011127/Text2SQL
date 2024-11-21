@@ -1,2 +1,7 @@
 .idea
 .DS_Store
+./dataset/AI_HUB/database/
+./dataset/AI_HUB/train.json
+./dataset/spider/
+./third_party/
+./dataset/AI_HUB/enc/*.jsonl

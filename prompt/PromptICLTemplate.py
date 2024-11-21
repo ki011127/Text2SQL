@@ -48,7 +48,8 @@ class BasicICLPrompt(object):
         
         if self.NUM_EXAMPLE != 0:
             # example questions
-            examples = self.get_examples(target, self.NUM_EXAMPLE * scope_factor, cross_domain=cross_domain)
+            examples, num = self.get_examples(target, self.NUM_EXAMPLE * scope_factor, cross_domain=cross_domain)
+            print(num)
             prompt_example = list()
             question = target["question"]
             example_prefix = self.get_example_prefix()
@@ -72,7 +73,7 @@ class BasicICLPrompt(object):
                     # record the selected examples
                     selected_examples.append(example)
                     
-                    if len(prompt_example) >= self.NUM_EXAMPLE:
+                    if len(prompt_example) >= num:
                         break
 
             self.record_example_quality(selected_examples, target)

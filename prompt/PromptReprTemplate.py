@@ -1,7 +1,7 @@
 from utils.utils import get_sql_for_database
 import json
-
-
+import sqlite3
+import pandas as pd
 class BasicPrompt(object):
     def __init__(self, *args, **kwargs):
         # used to avoid empty init function in 0-shot prompt
@@ -21,20 +21,165 @@ class SQLPrompt(BasicPrompt):
     template_info =   "/* Given the following database schema: */\n" \
                       "{}"
     template_question =  "/* Answer the following: {} */"
-
+    template_data = "/* Here are some data information about database references: */\n {}"
     def format_question(self, example: dict):
+        
         sqls = get_sql_for_database(example["path_db"])
 
         prompt_info = self.template_info.format("\n\n".join(sqls))
+
+
+        table_prompt_input = "/* Here are table name mapping information about database table name: */\n"
+        file_path = "dataset/AI_HUB/tables.json"  
+
+        # JSON 파일 로드
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        # 해당 db_id에 해당하는 오브젝트 찾기
+        matching_object = next((obj for obj in data if obj["db_id"] == example['db_id']), None)
+        db_info=""
+        if matching_object:
+            # 테이블 이름 매핑
+            table_names_original = matching_object["table_names_original"]
+            table_names = matching_object["table_names"]
+
+            # 테이블 매핑 데이터 생성
+            table_mapping_data = [
+                {"original": original, "translated": translated}
+                for original, translated in zip(table_names_original, table_names)
+            ]
+
+            # 컬럼 이름 매핑
+            column_names_original = matching_object["column_names_original"]
+            column_names = matching_object["column_names"]
+
+
+            # "*" 제외한 컬럼 매핑 생성
+            filtered_data = [
+                {
+                    "table_id": original[0],
+                    "original": original[1],
+                    "translated": translated[1],
+                }
+                for original, translated in zip(column_names_original, column_names)
+                if original[1] != "*" and translated[1] != "*"
+            ]
+
+            # 컬럼 매핑 데이터를 테이블별로 그룹화
+            grouped_columns = {}
+            for column in filtered_data:
+                table_id = column["table_id"]
+                if table_id not in grouped_columns:
+                    grouped_columns[table_id] = []
+                grouped_columns[table_id].append(column)
+
+            # 프롬프트 생성
+            for mapping in table_mapping_data:
+                table_prompt_input += f"- actual_table_name: {mapping['original']}, original_table_name: {mapping['translated']}\n"
+            table_prompt_input += "/* When you answer the following question you must use actual_table_name for table name*/\n"
+
+            column_prompt_input = "/*Here are column mapping information about database column name: */"
+            for table_id, columns in grouped_columns.items():
+                table_name_original = table_names_original[table_id]
+                column_prompt_input += f"\nTable: {table_name_original}\n"
+                for column in columns:
+                    column_prompt_input += f"- actual_column_name: {column['original']}, original_name: {column['translated']}\n"
+            column_prompt_input += "/* When you answer the following question you must use actual_column_name for column name*/\n"
+            # 최종 프롬프트
+            db_info = f"{table_prompt_input}\n{column_prompt_input}"
+
+            print(db_info)
+
+
+
+
+
+
+
+
+        # file_path = "dataset/AI_HUB/tables.json"
+        # db_info = "/*Here are column mapping information about database column name: */\n"
+        # with open(file_path, "r", encoding="utf-8") as f:
+        #     data = json.load(f)
+
+
+        # matching_object = next((obj for obj in data if obj["db_id"] == example['db_id']), None)
+
+        # if matching_object:
+        #     column_names_original = matching_object["column_names_original"]
+        #     column_names = matching_object["column_names"]
+            
+        #     filtered_data = [
+        #         {"original": original[1], "translated": translated[1]}
+        #         for original, translated in zip(column_names_original, column_names)
+        #         if original[1] != "*" and translated[1] != "*"
+        #     ]
+
+        #     result_df = pd.DataFrame(filtered_data)
+            
+        #     # 결과 출력
+        #     for row in filtered_data:
+        #         db_info += f"- actual_column_name: {row['original']}, original_name: {row['translated']}\n"
+        # db_info+="/* When you answer the following question you must use actual_column_name for column name*/\n"
+
+
+        # db = example['path_db']
+
+        # simplified_ddl_data = []
+
+        # mydb = sqlite3.connect(db)
+        # cur = mydb.cursor()
+        # cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        # Tables = cur.fetchall()
+        # for table in Tables:
+        #     cur.execute(f"select * from `{table[0]}`")
+        #     col_name_list = [tuple[0] for tuple in cur.description]
+        #     db_data_all = []
+        #     for i in range(3):
+        #         db_data_all.append(cur.fetchone())
+        #     test = ""
+        #     for idx, column_data in enumerate(col_name_list):
+        #         # print(list(db_data_all[2])[idx])
+        #         try:
+        #             test += f"{column_data}[{list(db_data_all[0])[idx]},{list(db_data_all[1])[idx]},{list(db_data_all[2])[idx]}],"
+        #         except:
+        #             test = test
+        #     if len(test)>=20000:
+        #         # ddls_data
+        #         test = ""
+        #         for idx, column_data in enumerate(col_name_list):
+        #             try:
+        #                 test += f"{column_data}[{list(db_data_all[0])[idx]},{list(db_data_all[1])[idx]}],"
+        #             except:
+        #                 test = test
+        #     if len(test)>=20000:
+        #         # ddls_data
+        #         test = ""
+        #         for idx, column_data in enumerate(col_name_list):
+        #             try:
+        #                 test += f"{column_data}[{list(db_data_all[0])[idx]}],"
+        #             except:
+        #                 test = test
+        #     simplified_ddl_data.append(f"{table[0]}({test[:-1]})")
+        # ddls_data = "# " + ";\n# ".join(simplified_ddl_data) + ";\n"
+
+        # db_info = self.template_data.format(ddls_data)
+        #db_info = "/* This is a column name inference method. */\nThe column name of the schema may be a combination of pronunciation of Korean according to sound and English abbreviations. Considering this factor, select the correct column and make a sql statement.\n"
+        #db_info = "/*The column name of the schema may be a combination of pronunciation of Korean according to sound and English abbreviations.*/\n"
         prompt_extra_info = self.get_extra_info(example["db_id"])
         prompt_question = self.template_question.format(example["question"])
-
+        # print("db_info: " + db_info)
+        
         if prompt_extra_info is None or prompt_extra_info == "":
-            prompt_components = [prompt_info, prompt_question]
+            #prompt_components = [prompt_info, prompt_question]
+            prompt_components = [prompt_info, db_info, prompt_question]
         else:
-            prompt_components = [prompt_info, prompt_extra_info, prompt_question]
+            prompt_components = [prompt_info, db_info, prompt_extra_info, prompt_question]
+            #prompt_components = [prompt_info, prompt_extra_info, prompt_question]
 
         prompt = "\n\n".join(prompt_components)
+        print("prompt: " + prompt)
         return prompt
 
 

@@ -8,17 +8,35 @@ from tqdm import tqdm
 from llm.chatgpt import init_chatgpt, ask_llm
 from utils.enums import LLM
 from torch.utils.data import DataLoader
-
+import sqlite3
 from utils.post_process import process_duplication, get_sqls
 
 QUESTION_FILE = "questions.json"
+
+
+def sql_test(db_id, sql):
+    print("sql_test")
+    try:
+        path = f"dataset/AI_HUB/database/{db_id}/{db_id}.sqlite"
+        connection = sqlite3.connect(path)
+        cursor = connection.cursor()
+        cursor.execute(sql)
+        #print(cursor.fetchall())
+        return 0
+    except sqlite3.Error as e:
+        # print(sql)
+        # print("SQLite error: "+ str(e))
+        return e
+
+    finally:
+        connection.close()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--question", type=str)
     parser.add_argument("--openai_api_key", type=str)
-    parser.add_argument("--openai_group_id", type=str, default="org-ktBefi7n9aK7sZjwc2R9G1Wo")
+    parser.add_argument("--openai_group_id", type=str, default="org-LsIGrxnqEKgsZGtOaINVeD2Q")
     parser.add_argument("--model", type=str, choices=[LLM.TEXT_DAVINCI_003, 
                                                       LLM.GPT_35_TURBO,
                                                       LLM.GPT_35_TURBO_0613,
@@ -32,9 +50,10 @@ if __name__ == '__main__':
     parser.add_argument("--mini_index_path", type=str, default="")
     parser.add_argument("--batch_size", type=int, default=1)
     parser.add_argument("--n", type=int, default=5, help="Size of self-consistent set")
-    parser.add_argument("--db_dir", type=str, default="dataset/spider/database")
+    parser.add_argument("--db_dir", type=str, default="dataset/AI_HUB/database")
+    parser.add_argument("--sql_error", action="store_true", default=False)
     args = parser.parse_args()
-
+    print(args.model)
     # check args
     assert args.model in LLM.BATCH_FORWARD or \
            args.model not in LLM.BATCH_FORWARD and args.batch_size == 1, \
@@ -111,4 +130,42 @@ if __name__ == '__main__':
 
                     for sql in final_sqls:
                         f.write(sql + "\n")
+                        # e = 0
+                        # error_msg = ""
+                        # if args.sql_error:
+                        #     e = sql_test(db_id,sql)
+                        #     error_msg = f"\n\n/*Generated SQL: */\n{sql} \n\n/*Error that occurs when sql query: */\n{str(e)}\n\n/*Generate sql that resolves the error */"
+                        # if e:
+                        #     try:
+                        #         res = ask_llm(args.model, batch, args.temperature, args.n, error_msg)
+                        #     except openai.error.InvalidRequestError:
+                        #         print(f"The {i}-th question has too much tokens! Return \"SELECT\" instead")
+                        #         res = ""
+
+                        #     # parse result
+                        #     token_cnt += res["total_tokens"]
+                        #     results = []
+                        #     cur_db_ids = db_ids[i * args.batch_size: i * args.batch_size + len(batch)]
+                        #     for sqls, db_id in zip(res["response"], cur_db_ids):
+                        #         processed_sqls = []
+                        #         for sql in sqls:
+                        #             sql = " ".join(sql.replace("\n", " ").split())
+                        #             sql = process_duplication(sql)
+                        #             if sql.startswith("SELECT"):
+                        #                 pass
+                        #             elif sql.startswith(" "):
+                        #                 sql = "SELECT" + sql
+                        #             else:
+                        #                 sql = "SELECT " + sql
+                        #             processed_sqls.append(sql)
+                        #         result = {
+                        #             'db_id': db_id,
+                        #             'p_sqls': processed_sqls
+                        #         }
+                        #         final_sqls = get_sqls([result], args.n, args.db_dir)
+
+                        #         for sql in final_sqls:
+                        #             f.write(sql + "\n")
+                        # else:
+                        #     f.write(sql + "\n")
 

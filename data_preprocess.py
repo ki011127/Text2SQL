@@ -106,7 +106,7 @@ def bird_pre_process(bird_dir, with_evidence=False):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--data_dir", type=str, default="./dataset/spider")
-    parser.add_argument("--data_type", type=str, choices=["spider", "bird"], default="spider")
+    parser.add_argument("--data_type", type=str, choices=["spider", "bird", "AI_HUB"], default="AI_HUB")
     args = parser.parse_args()
 
     data_type = args.data_type
@@ -139,3 +139,10 @@ if __name__ == '__main__':
         bird_db = 'databases'
         ## do not compute the cv_link since it is time-consuming in the huge database in BIRD
         schema_linking_producer(bird_dev, bird_train, bird_table, bird_db, bird_dir, compute_cv_link=False)
+    elif data_type =="AI_HUB":
+        AI_HUB_dir = './dataset/AI_HUB'
+        AI_HUB_dev = 'dev.json'
+        AI_HUB_train = 'train.json'
+        AI_HUB_table = 'tables.json'
+        AI_HUB_db = 'database'
+        schema_linking_producer(AI_HUB_dev, AI_HUB_train, AI_HUB_table, AI_HUB_db, AI_HUB_dir, compute_cv_link=False)

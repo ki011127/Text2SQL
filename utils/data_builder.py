@@ -237,6 +237,14 @@ class BirdDataset(BasicDataset):
     table_json = "tables.json"
     mini_test_index_json = None
 
+class AIHUBDataset(BasicDataset):
+    name = "AI_HUB"
+    test_json = "dev.json"
+    test_gold = "dev_gold.sql"
+    train_json = "train.json"
+    train_gold = "train_gold.sql"
+    table_json = "tables.json"
+    mini_test_index_json = None
 
 def load_data(data_type, path_data, pre_test_result=None):
     if data_type.lower() == "spider":
@@ -245,5 +253,7 @@ def load_data(data_type, path_data, pre_test_result=None):
         return RealisticDataset(path_data, pre_test_result)
     elif data_type.lower() == "bird":
         return BirdDataset(path_data, pre_test_result)
+    elif data_type.lower() == "ai_hub":
+        return AIHUBDataset(path_data, pre_test_result)
     else:
         raise RuntimeError()

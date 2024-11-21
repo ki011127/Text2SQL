@@ -201,7 +201,7 @@ class EuclideanDistanceSkeletonSimilarThresholdSelector(BasicExampleSelector):
         return [train_json[index] for (index, d) in top_pairs]
 
 
-class EuclideanDistanceQuestionMaskSelector(BasicExampleSelector):
+class EuclideanDistanceQuestionMaskSelector(BasicExampleSelector):  #########################################
     def __init__(self, data, *args, **kwargs):
         super().__init__(data)
 
@@ -217,7 +217,8 @@ class EuclideanDistanceQuestionMaskSelector(BasicExampleSelector):
     def get_examples(self, target, num_example, cross_domain=False):
         target_mask_question = mask_question_with_schema_linking([target], mask_tag=self.mask_token, value_tag=self.value_token)
         target_embedding = self.bert_model.encode(target_mask_question)
-
+        num = 1
+        print(num)
         # find the most similar question in train dataset
         from sklearn.metrics.pairwise import euclidean_distances
         distances = np.squeeze(euclidean_distances(target_embedding, self.train_embeddings)).tolist()
@@ -226,15 +227,25 @@ class EuclideanDistanceQuestionMaskSelector(BasicExampleSelector):
         train_json = self.train_json
         pairs_sorted = sorted(pairs, key=lambda x: x[0])
         top_pairs = list()
+        hardness = ""
         for d, index in pairs_sorted:
             similar_db_id = train_json[index]["db_id"]
+            # if train_json[index]["hardness"] == "medium" and hardness=="":
+            #     num = 3
+            #     hardness = train_json[index]["hardness"]
+            #     print(hardness)
+            # elif train_json[index]["hardness"] == "hard" and hardness!="":
+            #     num = 5
+            #     hardness = train_json[index]["hardness"]
+            #     print(hardness)
+            
             if cross_domain and similar_db_id == target["db_id"]:
                 continue
             top_pairs.append((index, d))
             if len(top_pairs) >= num_example:
                 break
 
-        return [train_json[index] for (index, d) in top_pairs]
+        return [train_json[index] for (index, d) in top_pairs], num
     
     
 class EuclideanDistancePreSkeletonSimilarThresholdSelector(BasicExampleSelector):
@@ -318,7 +329,7 @@ class EuclideanDistancePreSkeletonSimilarPlusSelector(BasicExampleSelector):
         return [train_json[index] for (index, d) in top_pairs]
     
 
-class EuclideanDistanceQuestionMaskPreSkeletonSimilarThresholdSelector(BasicExampleSelector):
+class EuclideanDistanceQuestionMaskPreSkeletonSimilarThresholdSelector(BasicExampleSelector): #######################
     def __init__(self, data, *args, **kwargs):
         super().__init__(data)
 
@@ -340,17 +351,26 @@ class EuclideanDistanceQuestionMaskPreSkeletonSimilarThresholdSelector(BasicExam
         from sklearn.metrics.pairwise import euclidean_distances
         distances = np.squeeze(euclidean_distances(target_embedding, self.train_embeddings)).tolist()
         pairs = [(distance, index) for distance, index in zip(distances, range(len(distances)))]
-
+        
         train_json = self.train_json
         pairs_sorted = sorted(pairs, key=lambda x: x[0])
         top_pairs = list()
+        num = 1
+        hardness=""
         for d, index in pairs_sorted:
             similar_db_id = train_json[index]["db_id"]
+            
             if cross_domain and similar_db_id == target["db_id"]:
                 continue
             # Skeleton similarity
             if jaccard_similarity(train_json[index]["pre_skeleton"], target["pre_skeleton"]) < self.threshold:
                 continue
+            # if train_json[index]["hardness"] == "medium" and hardness=="":
+            #     num = 3
+            #     hardness = train_json[index]["hardness"]
+            # elif train_json[index]["hardness"] == "hard" and hardness=="":
+            #     num = 5
+            #     hardness = train_json[index]["hardness"]
             top_pairs.append((index, d))
             if len(top_pairs) >= num_example:
                 break
@@ -367,7 +387,7 @@ class EuclideanDistanceQuestionMaskPreSkeletonSimilarThresholdSelector(BasicExam
                 if len(top_pairs) >= num_example:
                     break
 
-        return [train_json[index] for (index, d) in top_pairs]
+        return [train_json[index] for (index, d) in top_pairs], num
 
 
 class EuclideanDistanceQuestionMaskPreSkeletonSimilarThresholdShiftSelector(BasicExampleSelector):

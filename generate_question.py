@@ -18,7 +18,7 @@ sys.path.append("./")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_type", type=str, choices=["spider", "realistic", "bird"], default="spider")
+    parser.add_argument("--data_type", type=str, choices=["spider", "realistic", "bird", "AI_HUB"], default="AI_HUB")
     parser.add_argument("--split", type=str, choices=["train", "test"], default="test",  required=True)
     parser.add_argument("--k_shot", type=int, default=0, help="Number of examples")
     parser.add_argument("--prompt_repr", type=str, choices=[REPR_TYPE.CODE_REPRESENTATION,
@@ -63,7 +63,6 @@ if __name__ == '__main__':
     parser.add_argument("--pre_test_result", type=str, default=None)
 
     args = parser.parse_args()
-
     # load test dataset here
     data = load_data(args.data_type, PATH_DATA, args.pre_test_result)
 
@@ -82,13 +81,12 @@ if __name__ == '__main__':
     cross_domain = args.split == "train"
     
     for question_json in tqdm(getattr(data, func_name)()):
-        
+        print(question_json)
         question_format = prompt.format(target=question_json,
                                         max_seq_len=args.max_seq_len,
                                         max_ans_len=args.max_ans_len,
                                         scope_factor=args.scope_factor,
                                         cross_domain=cross_domain)
-        
         questions.append(question_format)
         
         token_cnt += question_format["prompt_tokens"]
